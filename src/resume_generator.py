@@ -6,8 +6,8 @@ Generates a tailored résumé PDF for a specific job posting.
 Workflow
 --------
 1. Load the master résumé YAML (``data/master_resume.yaml``).
-2. Ask GPT to select and rewrite the most relevant experience bullets and
-   project highlights for the target job.
+2. Ask Azure OpenAI to select and rewrite the most relevant experience bullets
+   and project highlights for the target job.
 3. Write a patched RenderCV YAML to a temporary file.
 4. Call ``rendercv render`` to produce the PDF.
 5. Return the path to the generated PDF.
@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from openai import OpenAI
+from openai import AzureOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
@@ -35,11 +35,19 @@ MASTER_RESUME_PATH = REPO_ROOT / "data" / "master_resume.yaml"
 OUTPUT_DIR = REPO_ROOT / "output"
 
 
-def _get_client() -> OpenAI:
-    api_key = os.environ.get("OPENAI_API_KEY")
+def _get_client() -> AzureOpenAI:
+    api_key = os.environ.get("AZURE_OPENAI_API_KEY")
     if not api_key:
-        raise EnvironmentError("OPENAI_API_KEY environment variable is not set.")
-    return OpenAI(api_key=api_key)
+        raise EnvironmentError("AZURE_OPENAI_API_KEY environment variable is not set.")
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+    if not endpoint:
+        raise EnvironmentError("AZURE_OPENAI_ENDPOINT environment variable is not set.")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+    return AzureOpenAI(
+        api_key=api_key,
+        azure_endpoint=endpoint,
+        api_version=api_version,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -85,6 +93,7 @@ def _tailor_resume_content(
     job: dict[str, Any],
 ) -> dict[str, Any]:
     client = _get_client()
+    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
     master_json = json.dumps(master.get("cv", master), ensure_ascii=False)
     jd_snippet = (job.get("description", "") or "")[:2000]
 
@@ -97,7 +106,7 @@ def _tailor_resume_content(
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model=deployment,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},

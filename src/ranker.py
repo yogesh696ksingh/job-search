@@ -1,7 +1,7 @@
 """
 src/ranker.py
 =============
-Ranks job postings against user preferences using the OpenAI API.
+Ranks job postings against user preferences using the Azure OpenAI API.
 
 Each job is scored 0 – 10 and given a short reasoning string.
 
@@ -18,21 +18,29 @@ import logging
 import os
 from typing import Any
 
-from openai import OpenAI
+from openai import AzureOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
-_client: OpenAI | None = None
+_client: AzureOpenAI | None = None
 
 
-def _get_client() -> OpenAI:
+def _get_client() -> AzureOpenAI:
     global _client
     if _client is None:
-        api_key = os.environ.get("OPENAI_API_KEY")
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY")
         if not api_key:
-            raise EnvironmentError("OPENAI_API_KEY environment variable is not set.")
-        _client = OpenAI(api_key=api_key)
+            raise EnvironmentError("AZURE_OPENAI_API_KEY environment variable is not set.")
+        endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+        if not endpoint:
+            raise EnvironmentError("AZURE_OPENAI_ENDPOINT environment variable is not set.")
+        api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+        _client = AzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=endpoint,
+            api_version=api_version,
+        )
     return _client
 
 
@@ -106,8 +114,9 @@ def _summarise_preferences(preferences: dict[str, Any]) -> str:
 def _score_job(job: dict[str, Any], preferences: dict[str, Any]) -> tuple[float, str]:
     """Call GPT and return (score, reasoning). Retries on transient failures."""
     client = _get_client()
+    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_MINI", "gpt-4o-mini")
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=deployment,
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": _build_user_prompt(job, preferences)},
@@ -199,8 +208,9 @@ def classify_role(job: dict[str, Any]) -> str:
     )
     try:
         client = _get_client()
+        deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_MINI", "gpt-4o-mini")
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=deployment,
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=30,
