@@ -11,9 +11,9 @@ roles — complete with tailored résumé PDFs and cover letters.
 | Phase | What it does |
 |-------|-------------|
 | **1 · Ingestion** | Scrapes RemoteOK (public API) and the HN "Who is Hiring?" thread. Optional: Indeed HTML scraping. |
-| **2 · Ranking** | Each job is scored 0–10 by GPT-4o-mini against your tech stack, seniority, location, and visa preferences. Disqualifying keywords are filtered out before any API call. |
-| **3 · Résumé** | GPT-4o selects and rewrites the most relevant bullets from your master résumé for each top job. RenderCV turns it into a PDF. ATS keyword gaps are surfaced. |
-| **4 · Cover letter** | GPT-4o-mini generates a personalised cover letter from a Jinja2 template, optionally rendered to PDF via pandoc. |
+| **2 · Ranking** | Each job is scored 0–10 by Azure OpenAI (gpt-4o-mini deployment) against your tech stack, seniority, location, and visa preferences. Disqualifying keywords are filtered out before any API call. |
+| **3 · Résumé** | Azure OpenAI (gpt-4o deployment) selects and rewrites the most relevant bullets from your master résumé for each top job. RenderCV turns it into a PDF. ATS keyword gaps are surfaced. |
+| **4 · Cover letter** | Azure OpenAI (gpt-4o-mini deployment) generates a personalised cover letter from a Jinja2 template, optionally rendered to PDF via pandoc. |
 | **5 · Email digest** | Resend delivers a rich HTML email with ranked jobs, scores, ATS tips, and apply links. |
 | **6 · Tracking** | A `data/seen_jobs.json` deduplication file ensures jobs are never re-suggested. A `data/job_tracker.csv` tracks status (new → applied → interview → offer). |
 
@@ -61,7 +61,11 @@ the best ones per job.
 For a local run, create a `.env` file (never commit it):
 
 ```bash
-OPENAI_API_KEY=sk-...
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_DEPLOYMENT_MINI=gpt-4o-mini
 RESEND_API_KEY=re_...
 ```
 
@@ -96,7 +100,11 @@ Add these in **Settings → Secrets and variables → Actions**:
 
 | Secret | Description |
 |--------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint (e.g. `https://your-resource.openai.azure.com/`) |
+| `AZURE_OPENAI_API_VERSION` | API version (e.g. `2024-12-01-preview`) |
+| `AZURE_OPENAI_DEPLOYMENT` | Deployment name for the `gpt-4o` model (default: `gpt-4o`) |
+| `AZURE_OPENAI_DEPLOYMENT_MINI` | Deployment name for the `gpt-4o-mini` model (default: `gpt-4o-mini`) |
 | `RESEND_API_KEY` | [Resend](https://resend.com) API key |
 
 The workflow:
