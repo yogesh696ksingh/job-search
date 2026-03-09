@@ -8,6 +8,7 @@ Supported sources
 * RemoteOK     — public JSON API (no auth required)
 * Hacker News  — "Who is Hiring?" monthly thread via Algolia API
 * Indeed       — HTML scraping (opt-in; must respect robots.txt)
+* LinkedIn     — public job search HTML scraping (opt-in; must respect robots.txt)
 
 Each function returns a list of dicts with at minimum:
 
@@ -278,6 +279,80 @@ def fetch_indeed(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# LinkedIn — opt-in HTML scraping
+# ──────────────────────────────────────────────────────────────────────────────
+
+LINKEDIN_SEARCH_URL = "https://www.linkedin.com/jobs/search/"
+
+
+def fetch_linkedin(
+    query: str,
+    location: str = "Remote",
+    max_results: int = 20,
+) -> list[dict[str, Any]]:
+    """
+    Scrape job listings from LinkedIn's public job search page.
+
+    ⚠️  LinkedIn's robots.txt restricts scraping; use this only for personal,
+        non-commercial purposes and respect rate limits.  Consider using
+        the LinkedIn Jobs API if you have access.
+    """
+    logger.info("Fetching jobs from LinkedIn (query=%r, location=%r) …", query, location)
+    params = {
+        "keywords": query,
+        "location": location,
+        "f_TPR": "r86400",   # posted in last 24 hours
+        "sortBy": "DD",       # sort by date (most recent first)
+        "count": min(max_results, 25),
+    }
+
+    try:
+        resp = _get(LINKEDIN_SEARCH_URL, params=params)
+    except RuntimeError as exc:
+        logger.error("LinkedIn fetch failed: %s", exc)
+        return []
+
+    soup = BeautifulSoup(resp.text, "lxml")
+    cards = soup.select("div.base-card") or soup.select("li.jobs-search__results-list")
+
+    jobs: list[dict[str, Any]] = []
+    for card in cards[:max_results]:
+        title_el = card.select_one("h3.base-search-card__title")
+        company_el = card.select_one("h4.base-search-card__subtitle")
+        location_el = card.select_one("span.job-search-card__location")
+        link_el = card.select_one("a.base-card__full-link")
+        time_el = card.select_one("time")
+
+        title = title_el.get_text(strip=True) if title_el else ""
+        company = company_el.get_text(strip=True) if company_el else ""
+        loc = location_el.get_text(strip=True) if location_el else location
+        href = link_el.get("href", "") if link_el else ""
+        # Strip tracking query parameters from the URL
+        url = href.split("?")[0] if href else ""
+        posted_at = time_el.get("datetime", "") if time_el else ""
+
+        if not title:
+            continue
+
+        job_id = _slugify(f"{company}-{title}")
+        jobs.append(
+            {
+                "id": f"linkedin-{job_id}",
+                "title": title,
+                "company": company,
+                "location": loc,
+                "url": url,
+                "description": "",
+                "source": "LinkedIn",
+                "posted_at": posted_at,
+            }
+        )
+
+    logger.info("LinkedIn: %d jobs found", len(jobs))
+    return jobs
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Unified entry point
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -303,6 +378,10 @@ def fetch_all_jobs(preferences: dict[str, Any]) -> list[dict[str, Any]]:
     if sources_cfg.get("indeed", False):
         for role in target_roles[:2]:  # limit to top 2 roles
             all_jobs.extend(fetch_indeed(query=role, max_results=20))
+
+    if sources_cfg.get("linkedin", False):
+        for role in target_roles[:2]:  # limit to top 2 roles
+            all_jobs.extend(fetch_linkedin(query=role, max_results=20))
 
     # Deduplicate by id
     seen: set[str] = set()
