@@ -1,0 +1,25 @@
+{{ candidate_name }}
+{{ candidate_email }} | {{ candidate_phone }}
+{{ candidate_location }}
+{{ candidate_linkedin }}
+
+{{ date }}
+
+Hiring Team
+{{ company_name }}
+
+Dear Hiring Team,
+
+I am writing to express my strong interest in the {{ job_title }} role at
+{{ company_name }}. {{ company_hook }}
+
+{{ why_fit_paragraph }}
+
+{{ impact_paragraph }}
+
+I would love the opportunity to discuss how my background aligns with
+{{ company_name }}'s goals. Thank you for your time and consideration.
+
+Warm regards,
+
+{{ candidate_name }}

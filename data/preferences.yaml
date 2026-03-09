@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────
+# User Preferences — edit this file to match
+# your job-search criteria before each run.
+# ─────────────────────────────────────────────
+
+candidate:
+  name: "Your Name"
+  email: "you@example.com"
+  phone: "+1-555-000-0000"
+  location: "San Francisco, CA (open to remote)"
+  linkedin: "https://linkedin.com/in/yourprofile"
+  github: "https://github.com/yourusername"
+  website: "https://yoursite.com"
+
+# Titles you are targeting (used for keyword search)
+target_roles:
+  - "Software Engineer"
+  - "Backend Engineer"
+  - "ML Infrastructure Engineer"
+  - "Data Platform Engineer"
+  - "Site Reliability Engineer"
+
+# Preferred seniority levels
+seniority:
+  - "mid"        # 3-5 years
+  - "senior"     # 5+ years
+
+# Must-have tech stack (any match scores higher)
+preferred_stack:
+  - Python
+  - Go
+  - Kubernetes
+  - AWS
+  - PostgreSQL
+  - Kafka
+  - Spark
+
+# Nice-to-have (bonus scoring)
+bonus_keywords:
+  - "distributed systems"
+  - "ML platform"
+  - "data infrastructure"
+  - "high throughput"
+  - "microservices"
+
+# Disqualifying keywords — jobs containing these are filtered out
+disqualifying_keywords:
+  - "PHP"
+  - "Salesforce"
+  - "SAP"
+  - ".NET"
+  - "unpaid internship"
+
+# Location preferences
+locations:
+  remote_ok: true
+  preferred:
+    - "San Francisco, CA"
+    - "New York, NY"
+    - "Remote"
+  excluded:
+    - "London"
+    - "Australia"
+
+# Visa / work-authorization requirements
+visa:
+  requires_sponsorship: false   # set true if you need H-1B etc.
+
+# Minimum company size (employees); 0 = no minimum
+min_company_size: 0
+
+# Job boards to scrape
+sources:
+  remoteok: true
+  indeed: false          # requires extra setup / API key
+  wellfound: false       # requires auth token
+  hacker_news_who_is_hiring: true   # monthly HN thread
+
+# How many top jobs to process per run
+top_n: 5
+
+# Email to send the daily digest to
+digest_email: "you@example.com"
+
+# Minimum GPT score (0-10) to be included in digest
+min_score: 6.0
