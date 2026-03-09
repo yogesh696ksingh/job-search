@@ -1,0 +1,71 @@
+name: Daily Job Search
+
+on:
+  schedule:
+    # Run at 05:00 UTC every day
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Set to '1' to skip email sending and PDF generation"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write   # allows the job to commit the updated seen_jobs.json / tracker CSV
+
+jobs:
+  job-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Python setup ──────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ── Optional: install pandoc for cover-letter PDF rendering ───────────
+      - name: Install pandoc (optional)
+        run: |
+          if sudo apt-get install -y pandoc texlive-xetex; then
+            echo "pandoc installed successfully"
+          else
+            echo "::warning::pandoc/texlive-xetex installation failed; cover letter PDFs will be skipped"
+          fi
+
+      # ── Run the pipeline ──────────────────────────────────────────────────
+      - name: Run job search pipeline
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || '0' }}
+        run: python -m src.main
+
+      # ── Upload artefacts (résumés + cover letters) ─────────────────────────
+      - name: Upload output artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-search-output-${{ github.run_number }}
+          path: output/
+          retention-days: 7
+
+      # ── Commit updated tracker files back to the repo ──────────────────────
+      - name: Commit tracker updates
+        if: success()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/seen_jobs.json data/job_tracker.csv || true
+          git diff --cached --quiet || git commit -m "chore: update job tracker [skip ci]"
+          git push

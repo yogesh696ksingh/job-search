@@ -1,0 +1,103 @@
+# ─────────────────────────────────────────────
+# Master résumé — RenderCV YAML format.
+# Keep ALL your experience here; the AI will
+# select and rewrite the most relevant bullets
+# for each specific job posting.
+# ─────────────────────────────────────────────
+
+cv:
+  name: "Your Name"
+  location: "San Francisco, CA"
+  email: "you@example.com"
+  phone: "+1-555-000-0000"
+  website: "https://yoursite.com"
+  social_networks:
+    - network: LinkedIn
+      username: yourprofile
+    - network: GitHub
+      username: yourusername
+
+  sections:
+    summary:
+      - "Senior software engineer with 5+ years building large-scale distributed
+         systems, ML infrastructure, and data platforms. Passionate about
+         high-throughput pipelines, developer productivity, and clean APIs."
+
+    experience:
+      - company: "Acme Corp"
+        position: "Senior Software Engineer — Platform"
+        start_date: "2022-01"
+        end_date: "present"
+        location: "San Francisco, CA (remote)"
+        highlights:
+          - "Designed and shipped a multi-tenant job-scheduling service handling
+             50k tasks/day on Kubernetes, reducing p99 latency by 40 %."
+          - "Led migration of 15 microservices from EC2 to EKS, cutting infra
+             costs by $120k/year."
+          - "Built an internal ML feature-store backed by PostgreSQL + Redis,
+             serving 200 models in production."
+          - "Mentored 3 junior engineers; drove adoption of shared platform
+             libraries across 8 teams."
+
+      - company: "Beta Startup"
+        position: "Software Engineer — Backend"
+        start_date: "2019-06"
+        end_date: "2021-12"
+        location: "New York, NY"
+        highlights:
+          - "Built real-time data ingestion pipeline in Python + Kafka processing
+             5 GB/hr of event data."
+          - "Implemented REST + GraphQL APIs consumed by 3 mobile clients
+             (99.9 % uptime, < 50 ms p95)."
+          - "Reduced CI/CD pipeline time from 22 min to 8 min via parallelisation
+             and caching strategies."
+          - "Created data-quality monitoring framework that caught 15 % of
+             upstream schema regressions automatically."
+
+      - company: "Gamma Labs (Internship)"
+        position: "Software Engineering Intern"
+        start_date: "2018-05"
+        end_date: "2018-08"
+        location: "Austin, TX"
+        highlights:
+          - "Prototyped a recommendation engine using collaborative filtering;
+             A/B test showed +8 % click-through."
+          - "Wrote Python scripts to automate ETL from S3 → Redshift, saving
+             4 h/week of manual work."
+
+    projects:
+      - name: "OpenMetrics Exporter"
+        date: "2023"
+        highlights:
+          - "Open-source Prometheus exporter for PostgreSQL slow-query analysis;
+             800+ GitHub stars."
+          - "Used by 3 Fortune-500 companies in production."
+
+      - name: "StreamFilter"
+        date: "2022"
+        highlights:
+          - "Real-time anomaly-detection library for Kafka streams (Python);
+             published to PyPI."
+
+    education:
+      - institution: "State University"
+        area: "Computer Science"
+        degree: "B.S."
+        start_date: "2015-09"
+        end_date: "2019-05"
+        highlights:
+          - "GPA: 3.8 / 4.0"
+          - "Relevant coursework: Distributed Systems, Machine Learning,
+             Algorithms, Databases"
+
+    skills:
+      - label: "Languages"
+        details: "Python, Go, TypeScript, SQL, Bash"
+      - label: "Infrastructure"
+        details: "AWS (EKS, RDS, S3, Lambda), Kubernetes, Terraform, Docker"
+      - label: "Data & Streaming"
+        details: "Kafka, Spark, PostgreSQL, Redis, Elasticsearch"
+      - label: "ML / AI"
+        details: "PyTorch, scikit-learn, MLflow, feature stores"
+      - label: "Observability"
+        details: "Prometheus, Grafana, Datadog, OpenTelemetry"
