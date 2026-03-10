@@ -1,9 +1,8 @@
 """
 src/cover_letter.py
 ===================
-Generates a plain-text cover letter for a specific job posting using Azure
-OpenAI, then optionally renders it to a PDF via a simple Markdown → PDF
-pipeline.
+Generates a plain-text cover letter for a specific job posting using GPT,
+then optionally renders it to a PDF via a simple Markdown → PDF pipeline.
 
 Returned artefacts
 ------------------
@@ -23,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import Template
-from openai import AzureOpenAI
+from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
@@ -33,19 +32,11 @@ TEMPLATE_PATH = REPO_ROOT / "templates" / "cover_letter_template.txt"
 OUTPUT_DIR = REPO_ROOT / "output"
 
 
-def _get_client() -> AzureOpenAI:
-    api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+def _get_client() -> OpenAI:
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise EnvironmentError("AZURE_OPENAI_API_KEY environment variable is not set.")
-    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
-    if not endpoint:
-        raise EnvironmentError("AZURE_OPENAI_ENDPOINT environment variable is not set.")
-    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
-    return AzureOpenAI(
-        api_key=api_key,
-        azure_endpoint=endpoint,
-        api_version=api_version,
-    )
+        raise EnvironmentError("OPENAI_API_KEY environment variable is not set.")
+    return OpenAI(api_key=api_key)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -81,7 +72,6 @@ def _generate_paragraphs(
     import json
 
     client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT_MINI", "gpt-4o-mini")
     jd_snippet = (job.get("description", "") or "")[:1500]
 
     user_prompt = (
@@ -93,7 +83,7 @@ def _generate_paragraphs(
     )
 
     response = client.chat.completions.create(
-        model=deployment,
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
