@@ -17,6 +17,7 @@ from src.scraper import (
     _slugify,
     fetch_all_jobs,
     fetch_hn_who_is_hiring,
+    fetch_linkedin,
     fetch_remoteok,
 )
 
@@ -199,6 +200,7 @@ PREFERENCES_REMOTEOK_ONLY = {
         "remoteok": True,
         "hacker_news_who_is_hiring": False,
         "indeed": False,
+        "linkedin": False,
     },
 }
 
@@ -211,3 +213,102 @@ def test_fetch_all_jobs_deduplication(mock_get):
     jobs = fetch_all_jobs(PREFERENCES_REMOTEOK_ONLY)
     ids = [j["id"] for j in jobs]
     assert len(ids) == len(set(ids)), "Duplicate job IDs found"
+
+
+# ── fetch_linkedin ────────────────────────────────────────────────────────────
+
+LINKEDIN_HTML_SAMPLE = """
+<html><body>
+  <div class="base-card">
+    <h3 class="base-search-card__title">Senior Python Engineer</h3>
+    <h4 class="base-search-card__subtitle">Acme Corp</h4>
+    <span class="job-search-card__location">Remote</span>
+    <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/123?trackingId=abc">Apply</a>
+    <time datetime="2024-01-15">2 weeks ago</time>
+  </div>
+  <div class="base-card">
+    <h3 class="base-search-card__title">Go Developer</h3>
+    <h4 class="base-search-card__subtitle">Beta Inc</h4>
+    <span class="job-search-card__location">New York, NY</span>
+    <a class="base-card__full-link" href="https://www.linkedin.com/jobs/view/456">Apply</a>
+    <time datetime="2024-01-16">1 week ago</time>
+  </div>
+  <div class="base-card">
+    <!-- card without a title — should be skipped -->
+    <h4 class="base-search-card__subtitle">Mystery Co</h4>
+    <span class="job-search-card__location">Austin, TX</span>
+  </div>
+</body></html>
+"""
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_returns_jobs(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    # third card has no title and should be skipped
+    assert len(jobs) == 2
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_job_shape(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    job = jobs[0]
+    required_keys = {"id", "title", "company", "location", "url", "description", "source", "posted_at"}
+    assert required_keys.issubset(job.keys())
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_source_field(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    assert all(j["source"] == "LinkedIn" for j in jobs)
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_id_prefix(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    assert all(j["id"].startswith("linkedin-") for j in jobs)
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_url_strips_tracking_params(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    # Tracking query string should be stripped from the URL
+    assert "?" not in jobs[0]["url"]
+    assert jobs[0]["url"] == "https://www.linkedin.com/jobs/view/123"
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_posted_at(mock_get):
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    jobs = fetch_linkedin(query="Python Engineer")
+    assert jobs[0]["posted_at"] == "2024-01-15"
+
+
+@patch("src.scraper._get")
+def test_fetch_linkedin_network_error_returns_empty(mock_get):
+    mock_get.side_effect = RuntimeError("Network failure")
+    jobs = fetch_linkedin(query="Python Engineer")
+    assert jobs == []
+
+
+@patch("src.scraper._get")
+def test_fetch_all_jobs_includes_linkedin(mock_get):
+    """fetch_all_jobs should call LinkedIn when linkedin source is enabled."""
+    mock_get.return_value = _mock_response(LINKEDIN_HTML_SAMPLE)
+    prefs = {
+        "target_roles": ["Python Engineer"],
+        "sources": {
+            "remoteok": False,
+            "hacker_news_who_is_hiring": False,
+            "indeed": False,
+            "linkedin": True,
+        },
+    }
+    jobs = fetch_all_jobs(prefs)
+    assert len(jobs) == 2
+    assert all(j["source"] == "LinkedIn" for j in jobs)

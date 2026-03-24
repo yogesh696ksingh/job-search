@@ -73,6 +73,7 @@ min_company_size: 0
 sources:
   remoteok: true
   indeed: false          # requires extra setup / API key
+  linkedin: false        # opt-in HTML scraping; respect LinkedIn's ToS
   wellfound: false       # requires auth token
   hacker_news_who_is_hiring: true   # monthly HN thread
 
